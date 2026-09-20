@@ -1,0 +1,14 @@
+# ESP-IDF build outputs
+build/
+sdkconfig
+sdkconfig.old
+
+# Managed components (reproducibly restored via idf_component.yml and dependencies.lock)
+managed_components/
+
+# Editor & OS files
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+Thumbs.db
