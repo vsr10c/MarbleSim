@@ -258,11 +258,11 @@ bool marble_render_init(marble_render_context_t *ctx, const arena_config_t *aren
     lv_label_set_text(ctx->tilt_label, "Tilt: 0.0° | Vel: 0 mm/s");
     lv_obj_align(ctx->tilt_label, LV_ALIGN_BOTTOM_MID, 0, -38);
 
-    // Calibration Hint (Bottom Edge)
+    // Bottom Status / Toast Label (Bottom Edge)
     ctx->calib_label = lv_label_create(ctx->screen);
     lv_obj_set_style_text_color(ctx->calib_label, lv_color_hex(0x718096), 0);
     lv_obj_set_style_text_font(ctx->calib_label, &lv_font_montserrat_12, 0);
-    lv_label_set_text(ctx->calib_label, "Press BOOT to Level");
+    lv_label_set_text(ctx->calib_label, "Press BOOT to Level • PWR for Audio");
     lv_obj_align(ctx->calib_label, LV_ALIGN_BOTTOM_MID, 0, -20);
 
     ESP_LOGI(TAG, "Marble render initialized successfully");
@@ -276,11 +276,15 @@ void marble_render_update(marble_render_context_t *ctx,
                           float current_fps) {
     if (!ctx || !state) return;
 
-    // 1. Update position of marble and drop shadow
+    // 1. Update position of marble and dynamic drop shadow
     int marble_x = (int)(state->pos_x - (float)MARBLE_RENDER_RADIUS + 0.5f);
     int marble_y = (int)(state->pos_y - (float)MARBLE_RENDER_RADIUS + 0.5f);
 
-    lv_obj_set_pos(ctx->shadow_img, marble_x + 4, marble_y + 5);
+    // Drop shadow offset shifts realistically based on surface tilt
+    int shadow_x = marble_x + 4 + (int)(tilt_x_deg * 0.12f);
+    int shadow_y = marble_y + 5 + (int)(tilt_y_deg * 0.12f);
+
+    lv_obj_set_pos(ctx->shadow_img, shadow_x, shadow_y);
     lv_obj_set_pos(ctx->marble_img, marble_x, marble_y);
 
     // 2. Update visual rotation angle matching physical rolling displacement
@@ -289,7 +293,7 @@ void marble_render_update(marble_render_context_t *ctx,
     if (angle_0_1_deg < 0) angle_0_1_deg += 3600;
     lv_image_set_rotation(ctx->marble_img, angle_0_1_deg);
 
-    // 3. Update HUD labels (throttle label text updates if needed)
+    // 3. Update HUD labels
     if (ctx->hud_visible) {
         char buf[64];
 
@@ -303,15 +307,25 @@ void marble_render_update(marble_render_context_t *ctx,
     }
 }
 
-void marble_render_show_calib_feedback(marble_render_context_t *ctx, bool active) {
+void marble_render_show_toast(marble_render_context_t *ctx, const char *msg, bool active) {
     if (!ctx || !ctx->calib_label) return;
-    if (active) {
-        lv_obj_set_style_text_color(ctx->calib_label, lv_color_hex(0x48BB78), 0); // Vibrant Green
-        lv_label_set_text(ctx->calib_label, "✓ ZEROED & CENTERED");
+    if (active && msg) {
+        if (strstr(msg, "ON") || strstr(msg, "✓")) {
+            lv_obj_set_style_text_color(ctx->calib_label, lv_color_hex(0x48BB78), 0); // Emerald Green
+        } else if (strstr(msg, "OFF")) {
+            lv_obj_set_style_text_color(ctx->calib_label, lv_color_hex(0xED8936), 0); // Amber Orange
+        } else {
+            lv_obj_set_style_text_color(ctx->calib_label, lv_color_hex(0x63B3ED), 0); // Cyan Blue
+        }
+        lv_label_set_text(ctx->calib_label, msg);
     } else {
         lv_obj_set_style_text_color(ctx->calib_label, lv_color_hex(0x718096), 0); // Neutral Gray
-        lv_label_set_text(ctx->calib_label, "Press BOOT or Tap Center to Level");
+        lv_label_set_text(ctx->calib_label, "Press BOOT to Level • PWR for Audio");
     }
+}
+
+void marble_render_show_calib_feedback(marble_render_context_t *ctx, bool active) {
+    marble_render_show_toast(ctx, "✓ ZEROED & CENTERED", active);
 }
 
 void marble_render_toggle_hud(marble_render_context_t *ctx) {
@@ -329,9 +343,5 @@ void marble_render_toggle_hud(marble_render_context_t *ctx) {
         lv_obj_add_flag(ctx->tilt_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ctx->calib_label, LV_OBJ_FLAG_HIDDEN);
     }
-}
-
-void marble_render_trigger_impact_flash(marble_render_context_t *ctx, float intensity) {
-    if (!ctx) return;
 }
 

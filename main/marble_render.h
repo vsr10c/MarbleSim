@@ -14,7 +14,6 @@ extern "C" {
 
 typedef struct {
     lv_obj_t *screen;
-    lv_obj_t *arena_canvas;
     lv_obj_t *shadow_img;
     lv_obj_t *marble_img;
     lv_obj_t *fps_label;
@@ -54,14 +53,15 @@ void marble_render_update(marble_render_context_t *ctx,
 void marble_render_toggle_hud(marble_render_context_t *ctx);
 
 /**
- * @brief Trigger impact pulse animation at the rim
- */
-/**
  * @brief Show or clear calibration feedback banner
  */
 void marble_render_show_calib_feedback(marble_render_context_t *ctx, bool active);
 
+/**
+ * @brief Show or clear toast notification (e.g. Audio ON/OFF)
+ */
+void marble_render_show_toast(marble_render_context_t *ctx, const char *msg, bool active);
+
 #ifdef __cplusplus
 }
 #endif
-
